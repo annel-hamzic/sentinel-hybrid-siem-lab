@@ -1,0 +1,22 @@
+// =====================================================================
+// Rule:        Windows - User Added to Administrators Group
+// Description: Detects an account being added to the built-in local
+//              Administrators group (Event ID 4732), a common persistence
+//              and privilege-escalation technique.
+// Data source: SecurityEvent (Windows Security Events via AMA, "Common")
+// Severity:    High
+// MITRE:       Persistence / Privilege Escalation - T1098 (Account Manipulation)
+// Schedule:    Run every 5 minutes, look back 5 minutes
+// Trigger:     Number of results > 0
+// Entities:    Host -> Computer | Account (Sid) -> AddedMemberSid
+//              Account (FullName) -> AddedBy
+// Note:        Matches on the well-known SID S-1-5-32-544 instead of the
+//              group name, which can be renamed or localized.
+// =====================================================================
+
+SecurityEvent
+| where EventID == 4732
+| where TargetSid == "S-1-5-32-544"
+| project TimeGenerated, Computer,
+          AddedMember = MemberName, AddedMemberSid = MemberSid,
+          AddedBy = SubjectAccount, GroupName = TargetUserName

@@ -1,0 +1,21 @@
+// =====================================================================
+// Rule:        Linux - SSH Brute Force Attempt
+// Description: Detects 5 or more failed SSH logins from a single source
+//              IP against one host within the lookback window.
+// Data source: Syslog (Syslog via AMA connector, auth/authpriv facilities)
+// Severity:    Medium
+// MITRE:       Credential Access - T1110 (Brute Force)
+// Schedule:    Run every 5 minutes, look back 10 minutes
+// Trigger:     Number of results > 0
+// Entities:    IP -> SrcIP | Host -> Computer
+// =====================================================================
+
+Syslog
+| where Facility in ("auth", "authpriv")
+| where SyslogMessage has "Failed password"
+| extend SrcIP = extract(@"from (\d{1,3}(?:\.\d{1,3}){3})", 1, SyslogMessage),
+         TargetUser = extract(@"for (?:invalid user )?(\S+) from", 1, SyslogMessage)
+| summarize Attempts = count(), TargetUsers = make_set(TargetUser),
+            StartTime = min(TimeGenerated), EndTime = max(TimeGenerated)
+    by SrcIP, Computer
+| where Attempts >= 5

@@ -1,0 +1,22 @@
+// =====================================================================
+// Rule:        Windows - Multiple Failed Logons (Brute Force)
+// Description: Detects 5 or more failed logons (Event ID 4625) against a
+//              single account on a host within the lookback window.
+// Data source: SecurityEvent (Windows Security Events via AMA, "Common")
+// Severity:    Medium
+// MITRE:       Credential Access - T1110 (Brute Force)
+// Schedule:    Run every 5 minutes, look back 10 minutes
+// Trigger:     Number of results > 0
+// Entities:    Host -> Computer | Account -> TargetAccount
+// Note:        Local logon failures record IpAddress as "-", so IP is
+//              surfaced in SourceIPs rather than mapped as an entity.
+// =====================================================================
+
+SecurityEvent
+| where EventID == 4625
+| summarize Attempts = count(),
+            LogonTypes = make_set(LogonType),
+            SourceIPs = make_set(IpAddress),
+            StartTime = min(TimeGenerated), EndTime = max(TimeGenerated)
+    by Computer, TargetAccount
+| where Attempts >= 5
