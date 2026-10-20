@@ -12,6 +12,15 @@ Everything in Azure is in one resource group, `rg-siem-lab`, so it's easy to tea
 
 ![Arc machines](screenshots/01-arc-machines.png)
 
+<details>
+<summary>More setup screenshots</summary>
+
+![Sentinel workspace connected in Defender](screenshots/02-sentinel-workspace.png)
+
+![Budget](screenshots/10-cost-budget.png)
+
+</details>
+
 ---
 
 ## Getting the logs in
@@ -22,6 +31,17 @@ I installed the **Windows Security Events via AMA** and **Syslog via AMA** conne
 |---|---|---|
 | `dcr-windows-security` | Windows security events, "Common" set | `SecurityEvent` |
 | `dcr-linux-syslog` | Only the `auth` and `authpriv` facilities at INFO and up. I left everything else off to keep ingestion small. | `Syslog` |
+
+<details>
+<summary>Data collection rule screenshots</summary>
+
+![Windows data collection rule](screenshots/06-dcr-windows-security.png)
+
+![Linux data collection rule](screenshots/08-dcr-linux-syslog.png)
+
+![Linux syslog facilities](screenshots/09-dcr-linux-syslog-facilities.png)
+
+</details>
 
 Creating the rules installs the Azure Monitor Agent on the machines automatically. Failed logons weren't showing up on Windows at first, so I turned on failure auditing.
 
@@ -41,11 +61,18 @@ All three are scheduled rules that run every 5 minutes. The KQL is in [`detectio
 | Windows - Multiple Failed Logons | 5+ Event ID 4625 for one account in 10 min | Medium |
 | Windows - User Added to Administrators | Event ID 4732 for the Administrators group | High |
 
-Some notes on how I wrote them:
+![Analytics rules](screenshots/14-analytics-rules.png)
 
-- The admin group rule matches the group's SID (`S-1-5-32-544`) instead of its name. The name can be renamed, but that SID is the same on every Windows machine.
-- Syslog stores the whole SSH message as one string, so I pull the source IP and username out with regex in the query.
-- For Windows failed logons I grouped by account instead of IP, because local logon failures log the IP as `-`.
+<details>
+<summary>Rule configuration screenshots</summary>
+
+![SSH rule query and entity mapping](screenshots/11-rule-ssh-query-entities.png)
+
+![Rule scheduling](screenshots/12-rule-scheduling.png)
+
+![Admin group rule entity mapping](screenshots/13-rule-admin-entity-mapping.png)
+
+</details>
 
 ---
 
@@ -55,11 +82,11 @@ Some notes on how I wrote them:
 
 From my laptop I ran a loop of SSH logins with a fake user and blank passwords.
 
-
 ### Windows
 
 [`Invoke-AttackSimulation.ps1`](scripts/powershell/Invoke-AttackSimulation.ps1) does two things. It generates 10 failed logons against an account that doesn't exist, and it creates a temporary user, adds it to Administrators, waits a minute, then deletes it. It only runs on `win-dc01` unless you pass `-Force`, and it always removes the test user, even if it errors out partway.
 
+![Attack simulation running](screenshots/16-attack-simulation.png)
 
 ### Results
 
@@ -67,10 +94,14 @@ All three rules fired:
 
 ![Incidents](screenshots/05-incidents.png)
 
-A few things I noticed:
+<details>
+<summary>Incident details</summary>
 
-- I ran the SSH test twice, and got two separate incidents for it. Alert grouping would merge those, and it's the first thing I'd tune.
-- The Windows failed-logon incident was for the built-in `Administrator` account. That came from my own wrong-password attempts at the VM's login screen, not from the script, so the rule caught activity I didn't stage for it.
+![Admin group incident](screenshots/15-incident-admin-group.png)
+
+![Resolved incident](screenshots/17-incident-resolved.png)
+
+</details>
 
 ---
 
@@ -97,10 +128,6 @@ It signs in with your `az login` session, so there are no keys in the code.
 
 **No VM quota.** The new subscription had 0 cores allowed for the B-series v2 VMs in Central US. Instead of waiting on a quota request, I switched to local VMs with Azure Arc.
 
-**Arc onboarding sign-in kept failing.** The onboarding script uses a device-code sign-in, which my tenant blocks. I created a service principal with only the "Azure Connected Machine Onboarding" role, scoped to the lab resource group, with a secret that expired in a day. I deleted the secret once both machines were connected.
-
-**Wrong secret.** My first attempt failed with `AADSTS7000215` because I'd copied the secret's ID instead of its value.
-
 **Bad hostname.** The Windows VM joined Arc as `WIN-0H3FMF513V7`. I disconnected it, renamed it to `win-dc01`, and reconnected it before collecting any logs, so all the data has the right name.
 
 **Sentinel menus missing.** After connecting the workspace to the Defender portal, the Sentinel menus took a while to show up.
@@ -112,20 +139,4 @@ It signs in with your `az login` session, so there are no keys in the code.
 ## What I'd add next
 
 - Alert grouping to stop the duplicate incidents
-- A playbook that emails me when a High incident is created
 - More rules: security log cleared (1102), new service installed (7045), and a successful login right after a burst of failures
-- Promoting `win-dc01` to a domain controller and adding AD-specific detections
-
----
-
-## Repo layout
-
-```
-.
-├── detections/
-│   └── sentinel/        KQL for the three analytics rules
-├── scripts/
-│   ├── powershell/      Invoke-AttackSimulation.ps1
-│   └── python/          sentinel_report.py, requirements.txt, .env.example
-└── screenshots/
-```
