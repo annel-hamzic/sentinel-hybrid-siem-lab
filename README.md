@@ -1,5 +1,3 @@
-# sentinel-hybrid-siem-lab
-Hybrid SIEM lab: on-prem Windows Server and Linux onboarded to Microsoft Sentinel via Azure Arc, with custom KQL detections and PowerShell/Python automation.
 # Sentinel Hybrid SIEM Lab
 
 I built this lab to get hands-on with Microsoft Sentinel. Two VMs run on my laptop (one Windows Server, one Ubuntu), get connected to Azure with Azure Arc, and send their security logs to Sentinel. From there I wrote my own detection rules, attacked my own machines to test them, and wrote a couple of scripts to automate the testing and reporting.
