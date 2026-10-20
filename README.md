@@ -128,6 +128,8 @@ It signs in with your `az login` session, so there are no keys in the code.
 
 **No VM quota.** The new subscription had 0 cores allowed for the B-series v2 VMs in Central US. Instead of waiting on a quota request, I switched to local VMs with Azure Arc.
 
+**Arc onboarding sign-in kept failing.** The onboarding script uses a device-code sign-in, which my tenant blocks. I created a service principal with only the "Azure Connected Machine Onboarding" role, scoped to the lab resource group, with a secret that expired in a day. I deleted the secret once both machines were connected.
+
 **Bad hostname.** The Windows VM joined Arc as `WIN-0H3FMF513V7`. I disconnected it, renamed it to `win-dc01`, and reconnected it before collecting any logs, so all the data has the right name.
 
 **Sentinel menus missing.** After connecting the workspace to the Defender portal, the Sentinel menus took a while to show up.
@@ -138,5 +140,5 @@ It signs in with your `az login` session, so there are no keys in the code.
 
 ## What I'd add next
 
-- Alert grouping to stop the duplicate incidents
+- Alert grouping to merge related incidents
 - More rules: security log cleared (1102), new service installed (7045), and a successful login right after a burst of failures
