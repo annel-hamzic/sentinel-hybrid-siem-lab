@@ -82,6 +82,8 @@ All three are scheduled rules that run every 5 minutes. The KQL is in [`detectio
 
 From my laptop I ran a loop of SSH logins with a fake user and blank passwords.
 
+![SSH brute force test](screenshots/18-ssh-bruteforce-test.png)
+
 ### Windows
 
 [`Invoke-AttackSimulation.ps1`](scripts/powershell/Invoke-AttackSimulation.ps1) does two things. It generates 10 failed logons against an account that doesn't exist, and it creates a temporary user, adds it to Administrators, waits a minute, then deletes it. It only runs on `win-dc01` unless you pass `-Force`, and it always removes the test user, even if it errors out partway.
